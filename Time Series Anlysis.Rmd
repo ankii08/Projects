@@ -1,0 +1,112 @@
+---
+title: "Sales Project"
+author: "Ankit"
+date: "2023-05-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(fpp3)
+library(forecast)
+```
+
+
+```{r}
+# loading the initial data in R
+data <- read.csv("/Users/ankitdas/Downloads/Sales.csv")
+
+
+```
+
+```{r}
+# Changing data into Time Series data
+Y <- ts(data[,2],start = c(1992,1), frequency = 12)
+```
+```{r}
+autoplot(Y) + ggtitle("Time Plot : Us Retail Sales per Month") + ylab("Millions of Dollar")
+```
+```{r}
+# Took the 1st order differencing to renove the Trend of the Data.
+DY<- diff(Y)
+```
+```{r}
+#plotting the differenced Data.
+autoplot(DY) + ggtitle("Time Plot : Change in Us Retail Sales per Month") + ylab("Millions of Dollar")
+acf(DY)
+pacf(DY)
+```
+```{r}
+# Analyzing The Seasonality of the Data.
+ggseasonplot(DY) +
+  ggtitle("Time Plot : Change Us Retail Sales per Month") + ylab("Millions of Dollar")
+```
+```{r}
+#Some More seasonality plots
+ggsubseriesplot(DY)
+```
+```{r}
+# Fitting  Seasonal naive Model
+fit<- snaive(DY) # Residual SD = 9855.1404
+print(summary(fit))
+checkresiduals(fit)
+```
+```{r}
+#ETS Method
+fit_ets<-ets(Y) # SD= 0.0164
+print(summary(fit_ets))
+checkresiduals(fit_ets)
+```
+```{r}
+# Fitting Arima Models.
+fit_arima<- auto.arima(Y,d=1,D=1,stepwise = FALSE,approximation = FALSE,trace = FALSE) # SD= 6648.538
+print(summary(fit_arima))
+checkresiduals(fit_arima)
+```
+
+```{r}
+#Forecast for Arima Model
+fcst<-forecast(fit_arima,h=12)
+print(fcst)
+autoplot(fcst)
+```
+```{r}
+#Forecast from ETS model.
+fcst<-forecast(fit_ets,h=12)
+print(fcst)
+autoplot(fcst)
+```
+
+```{r}
+#Neural Network Method Forecasting
+# load necessary packages
+library(forecast)
+library(tidyverse)
+
+
+# create training and testing datasets
+train_data <- window(Y, end=c(2018,12))
+test_data <- window(Y, start=c(2019,1))
+
+# train the neural network model
+model_nnetar <- nnetar(train_data)
+
+# make forecasts for the next 12 months
+forecast_nnetar <- forecast(model_nnetar, h=12)
+print(forecast_nnetar)
+
+# plot the forecasts against the actual sales
+plot(Y, type="l", col="blue", main="Neural Network Forecast vs. Actual Sales", xlab="Year", ylab="Sales (millions of dollars)")
+lines(fitted(forecast_nnetar), col="red")
+lines(forecast_nnetar$mean, col="green")
+legend("topleft", legend=c("Actual Sales", "Fitted Sales", "Forecasted Sales"), col=c("blue", "red", "green"), lty=1)
+print(forecast_nnetar)
+
+```
+
+
+
